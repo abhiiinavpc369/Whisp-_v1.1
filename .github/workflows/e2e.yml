@@ -1,0 +1,49 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: '6.0'
+
+      - name: Seed database
+        run: cd backend && node seedUsers.js
+
+      - name: Start backend
+        run: cd backend && npm start &
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/whisp_test
+          PORT: 3001
+          JWT_SECRET: test_secret
+          SESSION_SECRET: test_session
+          FRONTEND_URL: http://localhost:3000
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Run E2E tests
+        run: cd frontend && npm run cypress:run
+        env:
+          CYPRESS_baseUrl: http://localhost:3000
