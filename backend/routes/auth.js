@@ -32,7 +32,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const token = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    const { password, ...userWithoutPassword } = user._doc; // Exclude password from response
+    const { password: _, ...userWithoutPassword } = user._doc; // Exclude password from response
     res.json({ token, user: userWithoutPassword });
 
   } catch (err) {
