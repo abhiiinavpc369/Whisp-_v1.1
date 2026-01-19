@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_BASE = `http://${window.location.hostname}:3001`;
+const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
 const Login = ({ onLogin }) => {
   const [userId, setUserId] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_BASE}/api/auth/login`, { userId, password });
-      localStorage.setItem('token', res.data.token);
-      setError(false);
-      onLogin(res.data.user);
+      if (isRegister) {
+        await axios.post(`${API_BASE}/api/auth/register`, { userId, username, password });
+        setError('User created successfully! Please log in.');
+        setIsRegister(false);
+      } else {
+        const res = await axios.post(`${API_BASE}/api/auth/login`, { userId, password });
+        localStorage.setItem('token', res.data.token);
+        setError('');
+        onLogin(res.data.user);
+      }
     } catch (err) {
-      setError(true);
+      setError(err.response?.data?.message || 'An error occurred');
     }
   };
 
@@ -26,13 +34,26 @@ const Login = ({ onLogin }) => {
         <div className="login-icon">
           <i className="fas fa-comments"></i>
         </div>
-        <h2>Login to Whisp</h2>
+        <h2>{isRegister ? 'Sign Up for Whisp' : 'Login to Whisp'}</h2>
+        {isRegister && (
+          <div className="input-group">
+            <i className="fas fa-user input-icon"></i>
+            <input
+              className="login-input"
+              type="text"
+              placeholder="Display Name"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="name"
+            />
+          </div>
+        )}
         <div className="input-group">
           <i className="fas fa-user input-icon"></i>
           <input
             className="login-input"
             type="text"
-            placeholder="Username"
+            placeholder="User ID"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             autoComplete="username"
@@ -46,11 +67,14 @@ const Login = ({ onLogin }) => {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
+            autoComplete={isRegister ? "new-password" : "current-password"}
           />
         </div>
-        <button className="login-button" type="submit">Login</button>
-        {error && <p className="error-message">Invalid credentials.</p>}
+        <button className="login-button" type="submit">{isRegister ? 'Sign Up' : 'Login'}</button>
+        <button type="button" onClick={() => { setIsRegister(!isRegister); setError(''); }} className="toggle-button">
+          {isRegister ? 'Already have an account? Login' : "Don't have an account? Sign Up"}
+        </button>
+        {error && <p className="error-message">{error}</p>}
       </form>
     </div>
   );
