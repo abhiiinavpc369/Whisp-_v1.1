@@ -16,6 +16,8 @@ const compression = require('compression');
 
 const helmet = require('helmet');
 
+const path = require('path');
+
 const app = express();
 
 const server = http.createServer(app);
@@ -76,6 +78,14 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/files', require('./routes/files'));
 
 app.use('/api/friends', require('./routes/friends'));
+
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// Catch all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+});
 
 // Socket.io for real-time
 
