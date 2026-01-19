@@ -83,7 +83,10 @@ app.use('/api/friends', require('./routes/friends'));
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
 // Catch all handler: send back React's index.html file for any non-API routes
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+    return next();
+  }
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
