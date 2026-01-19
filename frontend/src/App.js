@@ -4,7 +4,7 @@ import Login from './components/Login';
 import Chat from './components/Chat';
 import './App.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:3001`;
+const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
 function App() {
   const [currentUser, setCurrentUser] = useState(null);

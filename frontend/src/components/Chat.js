@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import axios from 'axios';
 import ProfileSettings from './ProfileSettings';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || `http://${window.location.hostname}:3001`;
+const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
 const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
   const [selectedUser, setSelectedUser] = useState(null);
