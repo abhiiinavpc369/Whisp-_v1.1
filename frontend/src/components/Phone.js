@@ -119,9 +119,9 @@ const Phone = () => {
     <div className="bg-slate-50 text-slate-900 font-sans overflow-hidden">
       <div className="flex h-screen w-full overflow-hidden relative">
         {/* Sidebar (Left Rail) */}
-        <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full sm:w-80 bg-white border-r border-slate-200 md:relative md:translate-x-0 ${sidebarHidden ? 'sidebar-hidden' : 'sidebar-visible'} flex flex-col shadow-2xl md:shadow-none ${(activeTab === 'call' || activeTab === 'message') ? '' : 'hidden'}`}>
+        <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full sm:w-80 bg-slate-800 text-white border-r border-slate-600 md:relative md:translate-x-0 ${sidebarHidden ? 'sidebar-hidden' : 'sidebar-visible'} flex flex-col shadow-2xl md:shadow-none ${(activeTab === 'call' || activeTab === 'message') ? '' : 'hidden'}`}>
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-800 sticky top-0">
             <div className="flex items-center gap-2 flex-1">
               <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{viewTitle}</h1>
               {activeTab === 'message' && (
@@ -130,8 +130,9 @@ const Phone = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                   </button>
                   {menuOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
-                      <button onClick={() => { switchTab('settings', 'Settings'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-50 rounded-t-lg">Settings</button>
+                    <div className="absolute top-full right-0 mt-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 text-white">
+                      <button onClick={() => { switchTab('settings', 'Settings'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-t-lg">Settings</button>
+                      <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-b-lg">Logout</button>
                     </div>
                   )}
                 </div>
@@ -205,7 +206,7 @@ const Phone = () => {
           </div>
 
           {/* Persistent Bottom Nav */}
-          <nav className="flex border-t border-slate-100 bg-white shrink-0">
+          <nav className="flex border-t border-slate-600 bg-slate-800 shrink-0">
             <button onClick={() => switchTab('message', 'Messages')} className={`nav-item ${activeTab === 'message' ? 'active' : ''} flex-1 py-4 flex flex-col items-center gap-1`}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span className="text-[10px] font-bold uppercase tracking-tight">Message</span>
@@ -226,7 +227,7 @@ const Phone = () => {
         </aside>
 
         {/* Main Window */}
-        <main id="call-main" className={`flex-1 flex flex-col relative overflow-hidden transition-all duration-300 ${activeTab === 'call' ? 'bg-slate-900' : 'bg-slate-50 text-slate-900'} ${activeTab === 'message' ? 'hidden' : ''}`}>
+        <main id="call-main" className={`flex-1 flex flex-col relative overflow-hidden transition-all duration-300 ${activeTab === 'call' ? 'bg-slate-900' : 'bg-slate-900 text-white'} ${activeTab === 'message' ? 'hidden' : ''}`}>
           {/* Background Decoration */}
           <div className={`absolute inset-0 opacity-30 pointer-events-none ${activeTab === 'call' ? '' : 'hidden'}`}>
             <div className="absolute top-[-15%] left-[-15%] w-[60%] h-[60%] bg-blue-600/40 rounded-full blur-[100px] animate-pulse"></div>

@@ -58,9 +58,9 @@ const ProfileSettings = ({ user, onUpdate, onLogout }) => {
   ];
 
   return (
-    <div className="flex h-full bg-slate-50">
+    <div className="flex h-full bg-slate-900 text-white">
       {/* Sidebar Navigation */}
-      <div className="w-64 bg-white border-r border-slate-200 p-4">
+      <div className="w-64 bg-slate-800 border-r border-slate-600 p-4">
         <h1 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
           ⚙️ Settings
         </h1>
@@ -71,8 +71,8 @@ const ProfileSettings = ({ user, onUpdate, onLogout }) => {
               onClick={() => setActiveSection(section.id)}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeSection === section.id
-                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                  : 'text-slate-700 hover:bg-slate-50'
+                  ? 'bg-indigo-900 text-indigo-200 border border-indigo-700'
+                  : 'text-slate-200 hover:bg-slate-700'
               }`}
             >
               {section.label}
@@ -93,12 +93,12 @@ const ProfileSettings = ({ user, onUpdate, onLogout }) => {
             <h2 className="text-2xl font-bold mb-6">Account Settings</h2>
             <div className="space-y-6 max-w-2xl">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
+                <label className="block text-sm font-medium text-slate-200 mb-2">Username</label>
                 <input
                   type="text"
                   value={settings.username}
                   onChange={(e) => handleInputChange('username', e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-slate-600 rounded-lg bg-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
