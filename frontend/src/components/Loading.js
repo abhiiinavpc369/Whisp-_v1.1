@@ -67,7 +67,7 @@ const Loading = ({ onLoadingComplete }) => {
         <p className="text-sm text-slate-400">{progress}%</p>
 
         <p className="text-lg font-semibold mt-4 animate-fade-in">
-          Made with 🧠 by Abhinav & Abhinav Shukla Exclusively
+          Made with ❤️ by Abhinav & Abhinav Shukla
         </p>
       </div>
 

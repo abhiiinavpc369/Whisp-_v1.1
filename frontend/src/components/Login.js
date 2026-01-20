@@ -92,7 +92,7 @@ const Login = ({ onLogin }) => {
               />
             </div>
 
-            <button className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transform active:scale-[0.98] transition-all">
+            <button className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-2xl hover:bg-indigo-700 transform active:scale-[0.98] transition-all">
               Login
             </button>
           </form>
