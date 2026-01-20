@@ -17,6 +17,11 @@ const Phone = () => {
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
+  const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
   const toggleSidebar = () => {
     setSidebarHidden(!sidebarHidden);
@@ -79,7 +84,6 @@ const Phone = () => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
       try {
         const res = await axios.get(`${API_BASE}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -96,6 +100,25 @@ const Phone = () => {
     fetchUserData();
   }, []);
 
+  useEffect(() => {
+    if (searchQuery) {
+      const search = async () => {
+        const token = localStorage.getItem('token');
+        try {
+          const res = await axios.get(`${API_BASE}/api/friends/search?q=${searchQuery}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setSearchResults(res.data);
+        } catch {
+          setSearchResults([]);
+        }
+      };
+      search();
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
   const handleUpdateUser = (updatedUser) => {
     setUser(updatedUser);
   };
@@ -111,6 +134,20 @@ const Phone = () => {
     }
   };
 
+  const sendRequest = async (userId) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`${API_BASE}/api/friends/send-request/${userId}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Friend request sent');
+      setSearchQuery('');
+      setSearchResults([]);
+    } catch (err) {
+      alert(`Failed: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   if (!user) {
     return <Login onLogin={setUser} />;
   }
@@ -123,7 +160,10 @@ const Phone = () => {
           {/* Sidebar Header */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-800 sticky top-0">
             <div className="flex items-center gap-2 flex-1">
-              <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{viewTitle}</h1>
+              <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{viewTitle}<span className="ml-1 text-slate-400">...</span></h1>
+              <button onClick={() => setSearchModalOpen(true)} className="p-1 hover:bg-slate-700 rounded-full">
+                <i className="fas fa-search text-slate-400 hover:text-white"></i>
+              </button>
               {activeTab === 'message' && (
                 <div className="relative">
                   <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 hover:bg-slate-100 rounded-full">
@@ -263,6 +303,49 @@ const Phone = () => {
           {activeTab === 'status' && <div className="flex-1 p-4"><h2>Status</h2><p>Your current status: {user?.status || 'Online'}</p><p>View and update your status.</p></div>}
           {activeTab === 'settings' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} onBack={() => switchTab('message', 'Messages')} />}
         </main>
+
+        {/* Search Modal */}
+        {searchModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+            <div className="bg-slate-800 rounded-lg p-6 w-96 max-w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-white">Search Users</h3>
+                <button onClick={() => setSearchModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter username..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              />
+              <div className="max-h-64 overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  searchResults.map(user => (
+                    <div key={user.userId} className="flex items-center justify-between p-3 bg-slate-700 rounded-lg mb-2">
+                      <div className="flex items-center gap-3">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-10 h-10 rounded-full" alt="" />
+                        <div>
+                          <p className="text-white font-medium">{user.username}</p>
+                          <p className="text-slate-400 text-sm">{user.userId}</p>
+                        </div>
+                      </div>
+                      <button onClick={() => sendRequest(user.userId)} className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 text-sm">
+                        Add Friend
+                      </button>
+                    </div>
+                  ))
+                ) : searchQuery ? (
+                  <p className="text-slate-400 text-center">No users found</p>
+                ) : (
+                  <p className="text-slate-400 text-center">Start typing to search users</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
