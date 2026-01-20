@@ -9,29 +9,16 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState('');
-  const [file, setFile] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
-  const [showProfile, setShowProfile] = useState(false);
-  const [replyTo, setReplyTo] = useState(null);
-  const [editingMessage, setEditingMessage] = useState(null);
-  const [pastedImage, setPastedImage] = useState(false);
-  const [showMessageMenu, setShowMessageMenu] = useState(null);
-  const [calling, setCalling] = useState(false);
-  const [callTimer, setCallTimer] = useState(0);
-  const [deleteOptions, setDeleteOptions] = useState(null);
-  const [showCallLogs, setShowCallLogs] = useState(false);
-  const [showStatus, setShowStatus] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showAttachmentOptions, setShowAttachmentOptions] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
+  const [activeTab, setActiveTab] = useState('messages');
+  const [sidebarHidden, setSidebarHidden] = useState(false);
   const socketRef = useRef();
   const messagesEndRef = useRef();
-  const fileInputRef = useRef();
-  const imageInputRef = useRef();
+  const messageInputRef = useRef();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -51,17 +38,11 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
     socketRef.current.on('userStatusUpdate', (data) => {
       onUpdateUsers(users.map(u => u.userId === data.userId ? { ...u, isOnline: data.isOnline } : u));
     });
-    socketRef.current.on('incomingCall', (data) => {
-      setIncomingCall(data);
-    });
-    socketRef.current.on('callAccepted', (data) => {
-      setCalling(true);
-    });
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
     return () => socketRef.current.disconnect();
-  }, [user.userId]);
+  }, [user.userId, onUpdateUsers, users]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -126,24 +107,7 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
     fetchRequests();
   }, []);
 
-  useEffect(() => {
-    let interval;
-    if (calling) {
-      interval = setInterval(() => {
-        setCallTimer(prev => {
-          if (prev >= 30) {
-            setCalling(false);
-            setCallTimer(0);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      setCallTimer(0);
-    }
-    return () => clearInterval(interval);
-  }, [calling]);
+
 
   const fetchMessages = async () => {
     const token = localStorage.getItem('token');
@@ -157,108 +121,9 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
     }
   };
 
-  const sendMessage = async () => {
-    if (!message && !file) return;
-    const token = localStorage.getItem('token');
-    let messageType = 'text';
-    let content = message;
-    let fileMeta = null;
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      try {
-        const res = await axios.post(`${API_BASE}/api/files/upload`, formData, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
-        });
-        messageType = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'file';
-        content = res.data.fileURL;
-        fileMeta = {
-          fileName: res.data.fileName,
-          fileSize: res.data.fileSize,
-          fileType: res.data.fileType
-        };
-      } catch (err) {
-        alert('File upload failed');
-        return;
-      }
-    }
-    const msg = {
-      senderId: user.userId,
-      receiverId: selectedUser.userId,
-      messageType,
-      content,
-      fileMeta,
-      replyTo: replyTo?._id
-    };
-    try {
-      const res = await axios.post(`${API_BASE}/api/messages`, msg, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      socketRef.current.emit('sendMessage', res.data);
-      setMessages(prev => [...prev, res.data]);
-      setMessage('');
-      setFile(null);
-      setReplyTo(null);
-      setPastedImage(false);
-    } catch (err) {
-      alert('Failed to send message');
-    }
-  };
 
-  const handleReaction = async (msgId, emoji) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.post(`${API_BASE}/api/messages/${msgId}/react`, { emoji }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMessages(prev => prev.map(m => m._id === msgId ? res.data : m));
-      setShowMessageMenu(null); // Close menu after reaction
-    } catch (err) {
-      alert('Reaction failed');
-    }
-  };
 
-  const handleEdit = async (msgId, newContent) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.put(`${API_BASE}/api/messages/${msgId}`, { content: newContent }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMessages(prev => prev.map(m => m._id === msgId ? res.data : m));
-      setEditingMessage(null);
-    } catch (err) {
-      alert(err.response?.data?.message || 'Edit failed');
-    }
-  };
 
-  const handleDelete = async (msgId, type) => {
-    if (type === 'everyone') {
-      const token = localStorage.getItem('token');
-      try {
-        await axios.delete(`${API_BASE}/api/messages/${msgId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setMessages(prev => prev.filter(m => m._id !== msgId));
-      } catch (err) {
-        alert(err.response?.data?.message || 'Delete failed');
-      }
-    } else if (type === 'me') {
-      setMessages(prev => prev.filter(m => m._id !== msgId));
-    }
-    setDeleteOptions(null);
-  };
-
-  const handlePin = async (msgId) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await axios.put(`${API_BASE}/api/messages/${msgId}/pin`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMessages(prev => prev.map(m => m._id === msgId ? res.data : m));
-    } catch (err) {
-      alert('Pin failed');
-    }
-  };
 
   const sendRequest = async (userId) => {
     const token = localStorage.getItem('token');
@@ -288,418 +153,351 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.reload();
-  };
+
 
   const handlePhoneCall = () => {
     socketRef.current.emit('startCall', { to: selectedUser.userId, from: user.userId });
-    setCalling(true);
-    if (Notification.permission === 'granted') {
-      new Notification('Outgoing call', { body: `Calling ${selectedUser.username}` });
+    // Placeholder for call functionality
+    alert('Call feature coming soon!');
+  };
+
+  const toggleSidebar = () => {
+    setSidebarHidden(!sidebarHidden);
+  };
+
+  const switchTab = (tabId, title) => {
+    setActiveTab(tabId);
+    // Update view title if needed
+  };
+
+  const openChat = (name) => {
+    const user = conversations.find(conv => conv.username === name);
+    if (user) {
+      setSelectedUser(user);
+      if (window.innerWidth < 768) {
+        setSidebarHidden(true);
+      }
     }
   };
 
-  const handlePlusClick = () => {
-    setShowAttachmentOptions(!showAttachmentOptions);
-  };
+  const sendMessage = async () => {
+    if (!message.trim()) return;
 
-  const handleMicrophoneClick = () => {
-    // Placeholder for voice message
-    alert('Voice message feature coming soon!');
-  };
+    const msg = {
+      senderId: user.userId,
+      receiverId: selectedUser.userId,
+      messageType: 'text',
+      content: message,
+    };
 
-  const handleImageClick = () => {
-    imageInputRef.current.click();
-  };
-
-  const handleSmileClick = () => {
-    setShowEmojiPicker(!showEmojiPicker);
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setShowAttachmentOptions(false);
+    try {
+      const res = await axios.post(`${API_BASE}/api/messages`, msg, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      socketRef.current.emit('sendMessage', res.data);
+      setMessages(prev => [...prev, res.data]);
+      setMessage('');
+      messageInputRef.current.style.height = 'auto';
+    } catch (err) {
+      alert('Failed to send message');
     }
   };
 
-  const handleImageChange = (e) => {
-    const selectedImage = e.target.files[0];
-    if (selectedImage) {
-      setFile(selectedImage);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
-  const handleEmojiSelect = (emoji) => {
-    setMessage(prev => prev + emoji);
-    setShowEmojiPicker(false);
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = e.target.scrollHeight + 'px';
   };
 
-  const handleAcceptCall = () => {
-    socketRef.current.emit('acceptCall', { to: incomingCall.from, from: user.userId });
-    setIncomingCall(null);
-    setCalling(true);
-  };
 
-  const handleRejectCall = () => {
-    socketRef.current.emit('rejectCall', { to: incomingCall.from, from: user.userId });
-    setIncomingCall(null);
-  };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      <div className={`w-full md:w-80 bg-gray-800 bg-opacity-80 backdrop-blur-md border-r border-gray-700 flex flex-col ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 bg-green-600 text-white flex justify-between items-center sticky top-0 z-10">
-          <h3 className="text-lg font-semibold">Chats</h3>
-          <div className="flex gap-2">
-            <button onClick={() => setShowStatus(true)} className="text-white hover:text-gray-400"><i className="fas fa-circle"></i></button>
-            <button onClick={() => setShowCallLogs(true)} className="text-white hover:text-gray-400"><i className="fas fa-phone"></i></button>
-            <button onClick={() => setShowSettings(true)} className="text-white hover:text-gray-400"><i className="fas fa-cog"></i></button>
-            <button onClick={handleLogout} className="text-white hover:text-gray-400"><i className="fas fa-sign-out-alt"></i></button>
-          </div>
-        </div>
-        <input
-          className="p-3 border-b border-gray-600 bg-gray-700 text-white placeholder-gray-400"
-          type="text"
-          placeholder="Search users..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        {friendRequests.length > 0 && (
-          <div className="p-3">
-            <h4 className="text-gray-400 mb-2">Friend Requests</h4>
-            {friendRequests.map(req => (
-              <div key={req.userId} className="flex items-center p-2 hover:bg-gray-700 cursor-pointer">
-                <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-3">{req.userId.charAt(0).toUpperCase()}</div>
-                <div className="flex-1">
-                  <h4 className="font-semibold">{req.userId}</h4>
-                  <button onClick={() => acceptRequest(req.userId)} className="bg-green-600 text-white px-3 py-1 rounded text-sm"><i className="fas fa-check"></i> Accept</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex-1 overflow-y-auto">
-          {searchResults.length > 0 ? (
-            searchResults.map(user => (
-              <div key={user.userId} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer">
-                <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-3">{user.username.charAt(0).toUpperCase()}</div>
-                <div className="flex-1">
-                  <h4 className="font-semibold">{user.username}</h4>
-                  <button onClick={() => sendRequest(user.userId)} className="bg-purple-600 text-white px-3 py-1 rounded text-sm"><i className="fas fa-user-plus"></i> Add</button>
-                </div>
-              </div>
-            ))
-          ) : (
-            conversations.map(conv => (
-              <div key={conv.userId} className="flex items-center p-3 hover:bg-gray-700 cursor-pointer" onClick={() => setSelectedUser(conv)}>
-                <div className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center mr-3 relative overflow-hidden">
-                  {conv.profilePicture ? (
-                    <img src={conv.profilePicture} alt={conv.username} className="w-full h-full object-cover" />
-                  ) : (
-                    conv.username.charAt(0).toUpperCase()
-                  )}
-                  <div className={`absolute bottom-0 left-0 w-3 h-3 rounded-full border-2 border-gray-800 ${
-                    conv.isOnline ? 'bg-green-500' : 'bg-gray-500'
-                  }`}></div>
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold">{conv.username}</h4>
-                  <p className="text-gray-400 text-sm">{conv.lastMessage ? (conv.lastMessage.messageType === 'text' ? conv.lastMessage.content : 'File') : 'Tap to chat'}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-      <div className={`w-full md:flex-1 flex flex-col bg-gray-800 bg-opacity-80 backdrop-blur-md ${selectedUser ? 'flex' : 'hidden md:flex'}`}>
-        {!selectedUser ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <i className="fas fa-comments text-6xl mb-4"></i>
-              <h2 className="text-2xl font-semibold">Select a chat to start messaging</h2>
-              <p>Choose a friend from the list to begin a conversation.</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="p-4 bg-green-600 text-white flex items-center justify-between">
-              <div className="flex items-center">
-                <button onClick={() => { setSelectedUser(null); setMessages([]); }} className="mr-3 md:hidden"><i className="fas fa-arrow-left"></i></button>
-                <div className="w-10 h-10 bg-gray-700 text-purple-400 rounded-full flex items-center justify-center mr-3 cursor-pointer relative overflow-hidden" onClick={() => setShowProfile(true)}>
-                  {selectedUser.profilePicture ? (
-                    <img src={selectedUser.profilePicture} alt={selectedUser.username} className="w-full h-full object-cover" />
-                  ) : (
-                    selectedUser.username.charAt(0).toUpperCase()
-                  )}
-                  <div className={`absolute bottom-0 left-0 w-3 h-3 rounded-full border-2 border-gray-800 ${
-                    selectedUser.isOnline ? 'bg-green-500' : 'bg-gray-500'
-                  }`}></div>
-                </div>
-                <div>
-                  <h3 className="font-semibold">{selectedUser.username}</h3>
-                  <span className="text-sm opacity-75">{selectedUser.status}</span>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={handlePhoneCall} className="hover:text-gray-400"><i className="fas fa-phone"></i></button>
-                <button onClick={() => setShowSettings(true)} className="hover:text-gray-400"><i className="fas fa-ellipsis-v"></i></button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((msg, i) => (
-                <div key={msg._id || i} className={`flex ${msg.senderId === user.userId ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-3xl relative ${msg.senderId === user.userId ? 'bg-green-500 text-white' : 'bg-white text-black'}`}>
-                    {msg.replyTo && (
-                      <div className="text-xs opacity-75 mb-1 border-l-2 border-gray-500 pl-2">
-                        Replying to: {msg.replyTo.messageType === 'text' ? msg.replyTo.content : 'File'}
-                      </div>
-                    )}
-                    {msg.messageType === 'text' ? (
-                      editingMessage === msg._id ? (
-                        <input
-                          className="w-full bg-transparent border-none outline-none text-white"
-                          value={message}
-                          onChange={(e) => setMessage(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEdit(msg._id, message);
-                            if (e.key === 'Escape') setEditingMessage(null);
-                          }}
-                        />
-                      ) : (
-                        <p>{msg.content}</p>
-                      )
-                    ) : msg.messageType === 'image' ? (
-                      <img src={`${API_BASE}${msg.content}`} alt="Shared" className="max-w-full rounded" />
-                    ) : msg.messageType === 'video' ? (
-                      <video src={`${API_BASE}${msg.content}`} controls className="max-w-full rounded" />
-                    ) : (
-                      <a href={`${API_BASE}${msg.content}`} className="text-purple-300"><i className="fas fa-file"></i> {msg.fileMeta?.fileName}</a>
-                    )}
-                    {msg.edited && <span className="text-xs opacity-75"> (edited)</span>}
-                    {msg.pinned && <i className="fas fa-thumbtack text-xs ml-1"></i>}
-                    <div className="text-xs opacity-75 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</div>
-                    <div className="flex gap-1 mt-1">
-                      {msg.reactions.map((r, idx) => (
-                        <span key={idx} className="text-xs bg-gray-600 text-white px-1 rounded">{r.emoji} {r.userId === user.userId ? 'You' : ''}</span>
-                      ))}
-                    </div>
-                    <button className="absolute top-0 right-0 text-xs opacity-50 hover:opacity-100" onClick={() => setShowMessageMenu(msg._id === showMessageMenu ? null : msg._id)}><i className="fas fa-ellipsis-h"></i></button>
-                    {showMessageMenu === msg._id && (
-                      <div className="absolute top-0 right-0 mt-2 bg-gray-600 rounded shadow-lg z-10 max-w-xs">
-                        <div className="grid grid-cols-6 gap-1 p-2">
-                          {['👍', '❤️', '😂', '😢', '😮', '🙄', '😡', '😴', '🤔', '👏', '🔥', '💯'].map(emoji => (
-                            <button key={emoji} onClick={() => handleReaction(msg._id, emoji)} className="text-lg hover:bg-gray-500 rounded p-1">{emoji}</button>
-                          ))}
-                        </div>
-                        {msg.senderId === user.userId && (
-                          <>
-                            <button onClick={() => setEditingMessage(msg._id)} className="block px-2 py-1 text-xs hover:bg-gray-500">Edit</button>
-                            <button onClick={() => setDeleteOptions(msg._id)} className="block px-2 py-1 text-xs hover:bg-gray-500">Delete</button>
-                          </>
-                        )}
-                        <button onClick={() => setReplyTo(msg)} className="block px-2 py-1 text-xs hover:bg-gray-500">Reply</button>
-                        <button onClick={() => handlePin(msg._id)} className="block px-2 py-1 text-xs hover:bg-gray-500">{msg.pinned ? 'Unpin' : 'Pin'}</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-            {replyTo && (
-              <div className="p-2 bg-gray-700 border-t border-gray-600 flex items-center justify-between">
-                <span className="text-sm text-white">Replying to: {replyTo.messageType === 'text' ? replyTo.content : 'File'}</span>
-                <button onClick={() => setReplyTo(null)} className="text-red-500">×</button>
-              </div>
-            )}
-            {file && (
-              <div className="p-2 bg-gray-700 border-t border-gray-600">
-                {file.type.startsWith('image') && <img src={URL.createObjectURL(file)} alt="Preview" className="max-h-20 rounded" />}
-                {file.type.startsWith('video') && <video src={URL.createObjectURL(file)} className="max-h-20 rounded" />}
-                <span className="text-white">{file.name}</span>
-              </div>
-            )}
-            {pastedImage && <div className="p-2 bg-yellow-600 text-center text-white">Image pasted! Ready to send.</div>}
-            <div className="sticky bottom-0 p-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3 rounded-t-3xl">
-              <button onClick={handlePlusClick} className="w-9 h-9 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-full flex items-center justify-center hover:scale-95 transition-transform">
-                <i className="fas fa-plus text-sm"></i>
+    <div className="bg-slate-50 text-slate-900 font-sans overflow-hidden">
+      <div className="flex h-screen w-full overflow-hidden">
+        {/* Sidebar */}
+        <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full md:w-80 bg-white border-r border-slate-200 md:relative md:translate-x-0 flex flex-col ${sidebarHidden ? '-translate-x-full' : ''}`}>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+            <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              {activeTab === 'messages' ? 'Messages' : activeTab === 'calls' ? 'Call Logs' : 'Status'}
+            </h1>
+            <div className="flex gap-2">
+              <button className="p-2 hover:bg-slate-100 rounded-full md:hidden" onClick={toggleSidebar}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m18 6-12 12"/><path d="m6 6 12 12"/></svg>
               </button>
-              {showAttachmentOptions && (
-                <div className="absolute bottom-12 left-3 bg-white dark:bg-gray-700 rounded-lg shadow-lg p-2 flex gap-2">
-                  <button onClick={() => fileInputRef.current.click()} className="text-gray-600 dark:text-gray-300 hover:text-purple-500">
-                    <i className="fas fa-file text-lg"></i>
-                  </button>
-                  <button onClick={handleImageClick} className="text-gray-600 dark:text-gray-300 hover:text-purple-500">
-                    <i className="fas fa-image text-lg"></i>
-                  </button>
-                </div>
-              )}
-              <div className="flex-1 relative">
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* MESSAGES TAB */}
+            <div id="tab-messages" className={`tab-content p-2 space-y-1 ${activeTab === 'messages' ? 'active' : ''}`}>
+              <div className="px-2 pb-2">
                 <input
                   type="text"
-                  className="w-full px-4 py-3 bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Type a message..."
+                  placeholder="Search messages..."
+                  className="w-full px-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button onClick={handleMicrophoneClick} className="w-9 h-9 text-gray-500 hover:text-purple-500 transition-colors">
-                <i className="fas fa-microphone text-lg"></i>
-              </button>
-              <button onClick={handleImageClick} className="w-9 h-9 text-gray-500 hover:text-purple-500 transition-colors">
-                <i className="fas fa-image text-lg"></i>
-              </button>
-              <button onClick={handleSmileClick} className="w-9 h-9 text-gray-500 hover:text-purple-500 transition-colors">
-                <i className="fas fa-smile text-lg"></i>
-              </button>
-              {showEmojiPicker && (
-                <div className="absolute bottom-12 right-3 bg-white dark:bg-gray-700 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 max-w-xs">
-                  {['😊', '😂', '❤️', '👍', '😢', '😮', '🙄', '😡', '😴', '🤔', '👏', '🔥', '💯', '😍', '🥰', '🤗', '😉', '🙌', '✨', '🎉'].map(emoji => (
-                    <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="text-2xl hover:bg-gray-200 dark:hover:bg-gray-600 rounded p-1">
-                      {emoji}
-                    </button>
+
+              {/* Friend Requests */}
+              {friendRequests.length > 0 && (
+                <div className="px-2 pb-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Friend Requests</p>
+                  {friendRequests.map(req => (
+                    <div key={req.userId} className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${req.userId}`} className="w-12 h-12 rounded-full border-2 border-white shadow-sm" alt="" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold text-sm">{req.userId}</h3>
+                          <button onClick={() => acceptRequest(req.userId)} className="bg-green-600 text-white px-3 py-1 rounded text-xs">Accept</button>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
-              {message && (
-                <button onClick={sendMessage} className="w-9 h-9 bg-purple-500 text-white rounded-full hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors">
-                  <i className="fas fa-paper-plane text-sm"></i>
-                </button>
+
+              {/* Conversations */}
+              {searchResults.length > 0 ? (
+                searchResults.map(user => (
+                  <div key={user.userId} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer">
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-12 h-12 rounded-full border border-slate-100" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-sm">{user.username}</h3>
+                        <button onClick={() => sendRequest(user.userId)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs">Add</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                conversations.map(conv => (
+                  <div key={conv.userId} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer" onClick={() => openChat(conv.username)}>
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.username}`} className="w-12 h-12 rounded-full border border-slate-100 relative" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-sm">{conv.username}</h3>
+                        <span className="text-[10px] text-slate-500">2m</span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">
+                        {conv.lastMessage ? (conv.lastMessage.messageType === 'text' ? conv.lastMessage.content : 'File') : 'Tap to chat'}
+                      </p>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-          </>
-        )}
-      </div>
-      {showSettings && <ProfileSettings user={user} onClose={() => setShowSettings(false)} onUpdate={onUpdateUser} />}
-      {showProfile && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setShowProfile(false)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-20 h-20 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl relative">
-                <div className="absolute bottom-0 left-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-800"></div>
-                {selectedUser.username.charAt(0).toUpperCase()}
-              </div>
-              <h2 className="text-xl font-semibold">{selectedUser.username}</h2>
 
-              <p>Bio: {selectedUser.bio || 'No bio'}</p>
-              <p>Status: {selectedUser.status || 'No status'}</p>
-              <p>Last Seen: {selectedUser.lastSeen ? new Date(selectedUser.lastSeen).toLocaleString() : 'Unknown'}</p>
-              <button onClick={() => setShowProfile(false)} className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {incomingCall && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setIncomingCall(null)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-20 h-20 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">{incomingCall.from.charAt(0).toUpperCase()}</div>
-              <h2 className="text-xl font-semibold">Incoming Call</h2>
-              <p>{incomingCall.from} is calling you</p>
-              <div className="flex gap-4 mt-4">
-                <button onClick={handleAcceptCall} className="flex-1 px-4 py-2 bg-green-600 text-white rounded">Accept</button>
-                <button onClick={handleRejectCall} className="flex-1 px-4 py-2 bg-red-600 text-white rounded">Reject</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {calling && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setCalling(false)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <div className="text-center">
-              <div className="w-20 h-20 bg-purple-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">{selectedUser.username.charAt(0).toUpperCase()}</div>
-              <h2 className="text-xl font-semibold">Calling {selectedUser.username}</h2>
-              <p>{selectedUser.isOnline ? 'Ringing...' : 'Calling...'}</p>
-              <p className="text-sm opacity-75">{Math.floor(callTimer / 60)}:{(callTimer % 60).toString().padStart(2, '0')}</p>
-              <button onClick={() => setCalling(false)} className="mt-4 px-4 py-2 bg-red-600 text-white rounded">Hang Up</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {deleteOptions && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setDeleteOptions(null)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-sm w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Delete Message</h3>
-            <div className="space-y-3">
-              <button onClick={() => handleDelete(deleteOptions, 'me')} className="w-full p-3 bg-gray-700 text-white rounded hover:bg-gray-600">Delete for me</button>
-              <button onClick={() => handleDelete(deleteOptions, 'everyone')} className="w-full p-3 bg-red-600 text-white rounded hover:bg-red-700">Delete for everyone</button>
-            </div>
-            <button onClick={() => setDeleteOptions(null)} className="mt-4 w-full p-2 bg-gray-600 text-white rounded">Cancel</button>
-          </div>
-        </div>
-      )}
-      {showCallLogs && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setShowCallLogs(false)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold mb-4">Call Logs</h3>
-            <div className="space-y-2">
-              <div className="flex items-center p-3 bg-gray-700 rounded">
-                <i className="fas fa-phone text-green-500 mr-3"></i>
-                <div>
-                  <p className="font-semibold">AbhinavJi</p>
-                  <p className="text-sm text-gray-400">Outgoing • 5 min</p>
+            {/* CALL LOGS TAB */}
+            <div id="tab-calls" className={`tab-content p-2 space-y-1 ${activeTab === 'calls' ? 'active' : ''}`}>
+              <div className="p-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Recent Calls</div>
+              {/* Placeholder call logs - you can integrate real call data here */}
+              <div className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
                 </div>
-              </div>
-              <div className="flex items-center p-3 bg-gray-700 rounded">
-                <i className="fas fa-phone text-red-500 mr-3"></i>
-                <div>
-                  <p className="font-semibold">Friend1</p>
-                  <p className="text-sm text-gray-400">Missed • 2 hours ago</p>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold">Alex Rivera</h3>
+                  <p className="text-xs text-red-500 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="23" y1="1" x2="1" y2="23"/><path d="M17 2l4 4-4 4"/>
+                    </svg> Missed • 10:30 AM
+                  </p>
                 </div>
               </div>
             </div>
-            <button onClick={() => setShowCallLogs(false)} className="mt-4 w-full p-2 bg-green-600 text-white rounded">Close</button>
+
+            {/* STATUS TAB */}
+            <div id="tab-status" className={`tab-content p-2 space-y-4 ${activeTab === 'status' ? 'active' : ''}`}>
+              <div className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl">
+                <div className="relative">
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-12 h-12 rounded-full border-2 border-blue-500 p-0.5" alt="" />
+                  <button className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-0.5 border-2 border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold">My Status</h3>
+                  <p className="text-xs text-slate-500">Tap to add status update</p>
+                </div>
+              </div>
+              <div className="p-1">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">Recent Updates</p>
+                <div className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer">
+                  <div className="w-12 h-12 rounded-full border-2 border-green-500 p-0.5">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" className="w-full h-full rounded-full" alt="" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold">Alex Rivera</h3>
+                    <p className="text-xs text-slate-500">12 minutes ago</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-      {showStatus && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" onClick={() => setShowStatus(false)}>
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 text-white" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold mb-4">Status</h3>
-            <div className="space-y-4">
-              <div className="p-3 bg-gray-700 rounded">
-                <p className="font-semibold mb-2">Update Your Status</p>
+
+          {/* Bottom Navigation Bar */}
+          <nav className="flex border-t border-slate-100 bg-white">
+            <button onClick={() => switchTab('messages', 'Messages')} className={`nav-item flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${activeTab === 'messages' ? 'active' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span className="text-[10px] font-medium">Chats</span>
+            </button>
+            <button onClick={() => switchTab('status', 'Status')} className={`nav-item flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${activeTab === 'status' ? 'active' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+              <span className="text-[10px] font-medium">Status</span>
+            </button>
+            <button onClick={() => switchTab('calls', 'Call Logs')} className={`nav-item flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${activeTab === 'calls' ? 'active' : ''}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              <span className="text-[10px] font-medium">Calls</span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* Main Chat Window */}
+        <main id="chat-window" className={`flex-1 flex flex-col bg-white ${!sidebarHidden ? 'hidden md:flex' : ''}`}>
+          <header className="h-16 border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 bg-white z-10">
+            <div className="flex items-center gap-3">
+              <button className="md:hidden p-2 -ml-2 hover:bg-slate-100 rounded-lg" onClick={toggleSidebar}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+              {selectedUser ? (
+                <>
+                  <div className="relative">
+                    <img id="chat-avatar" src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`} className="w-10 h-10 rounded-full border border-slate-100" alt="" />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+                  </div>
+                  <div>
+                    <h2 id="chat-name" className="font-bold text-sm leading-none mb-1">{selectedUser.username}</h2>
+                    <p className="text-xs text-slate-500">Online</p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <h2 className="font-bold text-sm leading-none mb-1">Select a chat</h2>
+                  <p className="text-xs text-slate-500">Choose a conversation to start messaging</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1 md:gap-2">
+              {selectedUser && (
+                <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 hidden sm:block" onClick={handlePhoneCall}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m15 10 4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14V10z"/>
+                    <rect width="14" height="12" x="3" y="6" rx="2"/>
+                  </svg>
+                </button>
+              )}
+              <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-600" onClick={() => setShowSettings(true)}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div id="message-container" className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50/50 custom-scrollbar">
+            {selectedUser ? (
+              <>
+                <div className="flex justify-center">
+                  <span className="px-3 py-1 bg-white border border-slate-200 text-slate-400 text-[10px] font-medium rounded-full uppercase tracking-wider">
+                    Start of conversation with {selectedUser.username}
+                  </span>
+                </div>
+                {messages.map((msg, i) => (
+                  <div key={msg._id || i} className={`flex items-end gap-3 max-w-[85%] md:max-w-[70%] ${msg.senderId === user.userId ? 'ml-auto flex-row-reverse' : ''}`}>
+                    {msg.senderId !== user.userId && (
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.username}`} className="w-8 h-8 rounded-full mb-1 shrink-0" alt="" />
+                    )}
+                    <div>
+                      <div className={`p-3 md:p-4 rounded-2xl shadow-sm text-sm ${msg.senderId === user.userId ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 rounded-bl-none'}`}>
+                        {msg.messageType === 'text' ? (
+                          <p>{msg.content}</p>
+                        ) : msg.messageType === 'image' ? (
+                          <img src={`${API_BASE}${msg.content}`} alt="Shared" className="max-w-full rounded" />
+                        ) : (
+                          <a href={`${API_BASE}${msg.content}`} className="text-blue-300">
+                            <i className="fas fa-file"></i> {msg.fileMeta?.fileName}
+                          </a>
+                        )}
+                      </div>
+                      <span className={`text-[10px] text-slate-400 mt-1 ${msg.senderId === user.userId ? 'mr-1 text-right' : 'ml-1'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-4">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <h2 className="text-2xl font-semibold mb-2">Select a chat to start messaging</h2>
+                  <p>Choose a friend from the list to begin a conversation.</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {selectedUser && (
+            <footer className="p-3 md:p-4 bg-white border-t border-slate-200">
+              <div className="max-w-4xl mx-auto flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                <button className="p-2 text-slate-400 hover:text-blue-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                </button>
                 <textarea
-                  className="w-full px-3 py-2 bg-gray-600 text-white rounded resize-none"
-                  placeholder="What's on your mind?"
-                  rows="3"
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      // Placeholder: In a real app, save to server
-                      alert('Status updated: ' + message);
-                      setMessage('');
-                      setShowStatus(false);
-                    }
-                  }}
-                ></textarea>
+                  ref={messageInputRef}
+                  placeholder="Type a message..."
+                  className="w-full bg-transparent border-none focus:ring-0 text-sm py-2 px-1 max-h-32 resize-none"
+                  rows="1"
+                  value={message}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  id="send-btn"
+                  className="p-2 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all"
+                  onClick={sendMessage}
+                  disabled={!message.trim()}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                  </svg>
+                </button>
               </div>
-              <div className="flex items-center p-3 bg-gray-700 rounded">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-white font-bold">F</span>
-                </div>
-                <div>
-                  <p className="font-semibold">Friend Status</p>
-                  <p className="text-sm text-gray-400">Available</p>
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setShowStatus(false)} className="mt-4 w-full p-2 bg-green-600 text-white rounded">Close</button>
-          </div>
-        </div>
-      )}
+            </footer>
+          )}
+        </main>
+      </div>
+
+      {/* Profile Settings Modal */}
+      {showSettings && <ProfileSettings user={user} onClose={() => setShowSettings(false)} onUpdate={onUpdateUser} />}
     </div>
   );
 };

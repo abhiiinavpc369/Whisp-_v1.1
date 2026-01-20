@@ -264,11 +264,12 @@ body {
   color: #FFFFFF;
   align-self: flex-end;
   margin-left: auto;
-  border-radius: 18px 18px 4px 18px;
+  border-radius: 0px;
   padding: 10px 14px;
   box-shadow: 0 2px 8px rgba(124, 92, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
 .message.own::before {
@@ -289,11 +290,12 @@ body {
   -webkit-backdrop-filter: blur(10px);
   color: #FFFFFF;
   align-self: flex-start;
-  border-radius: 18px 18px 18px 4px;
+  border-radius: 0px;
   padding: 10px 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 }
 
 .message.other::before {
@@ -593,6 +595,21 @@ body {
   .send-button {
     padding: 8px 12px;
   }
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #7C5CFF;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 12px;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.toggle-button:hover {
+  color: #4F8CFF;
 }
 
 /* Error Styles */

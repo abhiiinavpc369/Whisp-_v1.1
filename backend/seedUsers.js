@@ -18,11 +18,11 @@ const seedUsers = async () => {
 
     const users = [
 
-      { userId: 'abhinavji', username: 'AbhinavJi', password: '1234' },
+      { userId: 'abhinavji', username: 'AbhinavJi', password: '8447300201p' },
 
       { userId: 'shuklaji', username: 'ShuklaJi', password: '1234' },
 
-      { userId: 'unknownmake', username: 'UnknownMake', password: '1234' }
+      { userId: 'unknownmake', username: 'UnknownMake', password: 'smthingman' }
 
     ];
 
