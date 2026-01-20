@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
-const ProfileSettings = ({ user, onUpdate, onLogout }) => {
+const ProfileSettings = ({ user, onUpdate, onLogout, onBack }) => {
   const [activeSection, setActiveSection] = useState('account');
   const [settings, setSettings] = useState({
     username: user.username || '',
@@ -45,25 +45,30 @@ const ProfileSettings = ({ user, onUpdate, onLogout }) => {
   };
 
   const sections = [
-    { id: 'account', label: '👤 Account', icon: 'user' },
-    { id: 'privacy', label: '🔐 Privacy & Security', icon: 'shield' },
-    { id: 'chat', label: '💬 Chat Settings', icon: 'message-circle' },
-    { id: 'notifications', label: '🔔 Notifications', icon: 'bell' },
-    { id: 'media', label: '📁 Media & Storage', icon: 'image' },
-    { id: 'appearance', label: '🌗 Appearance', icon: 'palette' },
-    { id: 'advanced', label: '🧠 Advanced', icon: 'settings' },
-    { id: 'social', label: '🧑‍🤝‍🧑 Social & Friends', icon: 'users' },
-    { id: 'safety', label: '🛡️ Safety & Moderation', icon: 'alert-triangle' },
-    { id: 'system', label: '🧩 App & System', icon: 'monitor' },
+    { id: 'account', label: 'Account', icon: 'user' },
+    { id: 'privacy', label: 'Privacy & Security', icon: 'shield-alt' },
+    { id: 'chat', label: 'Chat Settings', icon: 'comments' },
+    { id: 'notifications', label: 'Notifications', icon: 'bell' },
+    { id: 'media', label: 'Media & Storage', icon: 'images' },
+    { id: 'appearance', label: 'Appearance', icon: 'palette' },
+    { id: 'advanced', label: 'Advanced', icon: 'cogs' },
+    { id: 'social', label: 'Social & Friends', icon: 'users' },
+    { id: 'safety', label: 'Safety & Moderation', icon: 'exclamation-triangle' },
+    { id: 'system', label: 'App & System', icon: 'desktop' },
   ];
 
   return (
     <div className="flex h-full bg-slate-900 text-white">
       {/* Sidebar Navigation */}
       <div className="w-64 bg-slate-800 border-r border-slate-600 p-4">
-        <h1 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          ⚙️ Settings
-        </h1>
+        <div className="flex items-center mb-6">
+          <button onClick={onBack} className="mr-4 p-2 hover:bg-slate-700 rounded-lg transition-colors">
+            <i className="fas fa-arrow-left text-xl"></i>
+          </button>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <i className="fas fa-cog mr-2"></i>Settings
+          </h1>
+        </div>
         <nav className="space-y-1">
           {sections.map(section => (
             <button
@@ -75,7 +80,7 @@ const ProfileSettings = ({ user, onUpdate, onLogout }) => {
                   : 'text-slate-200 hover:bg-slate-700'
               }`}
             >
-              {section.label}
+              <i className={`fas fa-${section.icon} mr-2`}></i>{section.label}
             </button>
           ))}
         </nav>
