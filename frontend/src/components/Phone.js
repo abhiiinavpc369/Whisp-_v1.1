@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Chat from './Chat';
 import ProfileSettings from './ProfileSettings';
+import Login from './Login';
 
 const Phone = () => {
   const [sidebarHidden, setSidebarHidden] = useState(true);
@@ -103,6 +104,17 @@ const Phone = () => {
     setUsers(updatedUsers);
   };
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
+  }
+
   return (
     <div className="bg-slate-50 text-slate-900 font-sans overflow-hidden">
       <div className="flex h-screen w-full overflow-hidden relative">
@@ -187,7 +199,16 @@ const Phone = () => {
             <div id="tab-status" className={`tab-content ${activeTab === 'status' ? 'active' : ''}`}></div>
 
             {/* SETTINGS TAB */}
-            <div id="tab-settings" className={`tab-content ${activeTab === 'settings' ? 'active' : ''}`}></div>
+            <div id="tab-settings" className={`tab-content ${activeTab === 'settings' ? 'active' : ''}`}>
+              {activeTab === 'settings' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
+              {activeTab === 'settings' && user && (
+                <div className="p-4">
+                  <button onClick={handleLogout} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Persistent Bottom Nav */}
