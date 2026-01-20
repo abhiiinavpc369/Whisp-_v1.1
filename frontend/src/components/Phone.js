@@ -261,7 +261,7 @@ const Phone = () => {
             </button>
           </div>
           {activeTab === 'status' && <div className="flex-1 p-4"><h2>Status</h2><p>Your current status: {user?.status || 'Online'}</p><p>View and update your status.</p></div>}
-          {activeTab === 'settings' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} />}
+          {activeTab === 'settings' && user && <ProfileSettings user={user} onUpdate={handleUpdateUser} onBack={() => switchTab('message', 'Messages')} />}
         </main>
       </div>
     </div>
