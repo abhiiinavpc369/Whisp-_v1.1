@@ -90,6 +90,8 @@ app.use('/api/files', require('./routes/files'));
 
 app.use('/api/friends', require('./routes/friends'));
 
+app.use('/api/status', require('./routes/status'));
+
 // Serve static files from the React app build directory
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
