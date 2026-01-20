@@ -7,7 +7,7 @@ const Login = ({ onLogin }) => {
   const [userId, setUserId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+
   const [isSignup, setIsSignup] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -19,22 +19,19 @@ const Login = ({ onLogin }) => {
         await axios.post(`${API_BASE}/api/auth/register`, { userId, username, password });
         displayToast('Account created successfully!');
         setIsSignup(false);
-        setError('');
       } else {
         const res = await axios.post(`${API_BASE}/api/auth/login`, { userId, password });
         localStorage.setItem('token', res.data.token);
-        setError('');
         displayToast('Welcome back!');
         setTimeout(() => onLogin(res.data.user), 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred');
+      console.error(err);
     }
   };
 
   const toggleMode = (mode) => {
     setIsSignup(mode === 'signup');
-    setError('');
   };
 
   const displayToast = (message) => {
@@ -44,7 +41,7 @@ const Login = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: '#f0f2f5' }}>
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: '#0f1117' }}>
       <div id="container" className={`auth-container ${isSignup ? 'signup-mode' : 'login-mode'}`}>
         {/* Sliding Overlay */}
         <div className="overlay-panel">
@@ -94,9 +91,7 @@ const Login = ({ onLogin }) => {
                 autoComplete="current-password"
               />
             </div>
-            <div className="text-right">
-              <a href="#" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Forgot password?</a>
-            </div>
+
             <button className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-100 hover:bg-indigo-700 transform active:scale-[0.98] transition-all">
               Login
             </button>
@@ -165,11 +160,12 @@ const Login = ({ onLogin }) => {
           width: 900px;
           max-width: 95vw;
           height: 600px;
-          background: #fff;
+          background: #1a1d29;
           border-radius: 30px;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
           overflow: hidden;
           position: relative;
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         /* The Sliding Panel */
@@ -238,13 +234,14 @@ const Login = ({ onLogin }) => {
 
         /* Input Styling */
         .input-box {
-          background: #f8fafc;
+          background: #2a2f45;
           border: 2px solid transparent;
           transition: all 0.3s ease;
+          color: #e2e8f0;
         }
 
         .input-box:focus {
-          background: #fff;
+          background: #1a1d29;
           border-color: #6366f1;
           box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }

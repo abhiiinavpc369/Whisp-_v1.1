@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}`;
 
-const ProfileSettings = ({ user, onUpdate }) => {
+const ProfileSettings = ({ user, onUpdate, onLogout }) => {
   const [activeSection, setActiveSection] = useState('account');
   const [settings, setSettings] = useState({
     username: user.username || '',
@@ -80,6 +80,7 @@ const ProfileSettings = ({ user, onUpdate }) => {
           ))}
         </nav>
         <div className="mt-8 pt-4 border-t border-slate-200">
+          <button onClick={onLogout} className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 mb-4">Logout</button>
           <p className="text-xs text-slate-500 mb-2">Made by Abhinav — Exclusively</p>
           <p className="text-xs text-slate-400">Version 1.1.0</p>
         </div>
