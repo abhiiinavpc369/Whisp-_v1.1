@@ -158,29 +158,33 @@ const Phone = () => {
         {/* Sidebar (Left Rail) */}
         <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full sm:w-80 bg-slate-800 text-white border-r border-slate-600 md:relative md:translate-x-0 ${sidebarHidden ? 'sidebar-hidden' : 'sidebar-visible'} flex flex-col shadow-2xl md:shadow-none ${(activeTab === 'call' || activeTab === 'message') ? '' : 'hidden'}`}>
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-800 sticky top-0">
-            <div className="flex items-center gap-2 flex-1">
-              <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{viewTitle}<span className="ml-1 text-slate-400">...</span></h1>
+          <div className="p-4 border-b border-slate-600 flex justify-between items-center bg-slate-800 sticky top-0">
+            <h1 id="view-title" className="text-xl font-bold text-white">{viewTitle}<span className="ml-1 text-slate-400">...</span></h1>
+            <div className="flex items-center gap-2">
               <button onClick={() => setSearchModalOpen(true)} className="p-1 hover:bg-slate-700 rounded-full">
                 <i className="fas fa-search text-slate-400 hover:text-white"></i>
               </button>
               {activeTab === 'message' && (
                 <div className="relative">
-                  <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 hover:bg-slate-100 rounded-full">
+                  <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 hover:bg-slate-700 rounded-full">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                   </button>
                   {menuOpen && (
-                    <div className="absolute top-full right-0 mt-1 w-32 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 text-white">
-                      <button onClick={() => { switchTab('settings', 'Settings'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-t-lg">Settings</button>
-                      <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-b-lg">Logout</button>
+                    <div className="absolute top-full right-0 mt-1 w-40 bg-slate-800 border border-slate-600 rounded-lg shadow-lg z-50 text-white">
+                      <button onClick={() => { switchTab('message', 'Messages'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-t-lg"><i className="fas fa-comments mr-2"></i>Messages</button>
+                      <button onClick={() => { switchTab('call', 'Calls'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700"><i className="fas fa-phone mr-2"></i>Calls</button>
+                      <button onClick={() => { switchTab('status', 'Status'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700"><i className="fas fa-circle mr-2"></i>Status</button>
+                      <button onClick={() => { switchTab('settings', 'Settings'); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700"><i className="fas fa-cog mr-2"></i>Settings</button>
+                      <div className="border-t border-slate-600"></div>
+                      <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="block w-full text-left px-3 py-2 text-sm hover:bg-slate-700 rounded-b-lg"><i className="fas fa-sign-out-alt mr-2"></i>Logout</button>
                     </div>
                   )}
                 </div>
               )}
+              <button className="p-2 hover:bg-slate-700 rounded-full md:hidden" onClick={toggleSidebar}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 6-12 12"/><path d="m6 6 12 12"/></svg>
+              </button>
             </div>
-            <button className="p-2 hover:bg-slate-100 rounded-full md:hidden" onClick={toggleSidebar}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 6-12 12"/><path d="m6 6 12 12"/></svg>
-            </button>
           </div>
 
           {/* Scrollable Content */}
