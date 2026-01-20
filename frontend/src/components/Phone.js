@@ -124,6 +124,7 @@ const Phone = () => {
 
   useEffect(() => {
     const fetchConversations = async () => {
+      if (!user) return;
       const token = localStorage.getItem('token');
       const convs = await Promise.all(users.filter(u => u.userId !== user.userId).map(async (u) => {
         try {
@@ -137,8 +138,8 @@ const Phone = () => {
       }));
       setConversations(convs);
     };
-    if (users.length > 0) fetchConversations();
-  }, [users, user.userId]);
+    if (users.length > 0 && user) fetchConversations();
+  }, [users, user]);
 
   useEffect(() => {
     if (selectedUser) {
