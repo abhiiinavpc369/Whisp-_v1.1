@@ -219,10 +219,10 @@ const Chat = ({ user, users, onUpdateUser, onUpdateUsers }) => {
 
 
   return (
-    <div className="bg-slate-50 text-slate-900 font-sans overflow-hidden">
+    <div className="bg-slate-900 text-white font-sans overflow-hidden">
       <div className="flex h-screen w-full overflow-hidden">
         {/* Sidebar */}
-        <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full md:w-80 bg-white border-r border-slate-200 md:relative md:translate-x-0 flex flex-col ${sidebarHidden ? '-translate-x-full' : ''}`}>
+        <aside id="sidebar" className={`fixed inset-y-0 left-0 z-50 w-full md:w-80 bg-slate-800 border-r border-slate-600 md:relative md:translate-x-0 flex flex-col ${sidebarHidden ? '-translate-x-full' : ''}`}>
           {/* Sidebar Header */}
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
             <h1 id="view-title" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
