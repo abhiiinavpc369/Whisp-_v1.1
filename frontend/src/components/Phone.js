@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Chat from './Chat';
 import ProfileSettings from './ProfileSettings';
 import Login from './Login';
 
@@ -8,6 +7,10 @@ const Phone = () => {
   const [sidebarHidden, setSidebarHidden] = useState(true);
   const [activeTab, setActiveTab] = useState('message');
   const [viewTitle, setViewTitle] = useState('Messages');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState('');
+  const [conversations, setConversations] = useState([]);
   const [callName, setCallName] = useState('Alex Rivera');
   const [callAvatar, setCallAvatar] = useState('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
   const [callStatus, setCallStatus] = useState('Calling...');
@@ -119,6 +122,41 @@ const Phone = () => {
     }
   }, [searchQuery]);
 
+  useEffect(() => {
+    const fetchConversations = async () => {
+      const token = localStorage.getItem('token');
+      const convs = await Promise.all(users.filter(u => u.userId !== user.userId).map(async (u) => {
+        try {
+          const res = await axios.get(`${API_BASE}/api/messages/last/${u.userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          return { ...u, lastMessage: res.data };
+        } catch {
+          return { ...u, lastMessage: null };
+        }
+      }));
+      setConversations(convs);
+    };
+    if (users.length > 0) fetchConversations();
+  }, [users, user.userId]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      const fetchMessages = async () => {
+        const token = localStorage.getItem('token');
+        try {
+          const res = await axios.get(`${API_BASE}/api/messages/${selectedUser.userId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setMessages(res.data);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchMessages();
+    }
+  }, [selectedUser]);
+
   const handleUpdateUser = (updatedUser) => {
     setUser(updatedUser);
   };
@@ -145,6 +183,26 @@ const Phone = () => {
       setSearchResults([]);
     } catch (err) {
       alert(`Failed: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+    const msg = {
+      senderId: user.userId,
+      receiverId: selectedUser.userId,
+      messageType: 'text',
+      content: message,
+    };
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${API_BASE}/api/messages`, msg, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages(prev => [...prev, res.data]);
+      setMessage('');
+    } catch (err) {
+      alert('Failed to send message');
     }
   };
 
@@ -212,8 +270,44 @@ const Phone = () => {
             </div>
 
             {/* MESSAGE TAB */}
-            <div id="tab-message" className={`tab-content ${activeTab === 'message' ? 'active' : ''}`}>
-              {activeTab === 'message' && <Chat user={user} users={users} onUpdateUser={handleUpdateUser} onUpdateUsers={handleUpdateUsers} />}
+            <div id="tab-message" className={`tab-content p-2 space-y-1 ${activeTab === 'message' ? 'active' : ''}`}>
+              <div className="px-2 pb-2">
+                <input
+                  type="text"
+                  placeholder="Search messages..."
+                  className="w-full px-4 py-2 bg-slate-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              {searchResults.length > 0 ? (
+                searchResults.map(user => (
+                  <div key={user.userId} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer">
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} className="w-12 h-12 rounded-full border border-slate-100" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-sm">{user.username}</h3>
+                        <button onClick={() => sendRequest(user.userId)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs">Add</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                conversations.map(conv => (
+                  <div key={conv.userId} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl cursor-pointer" onClick={() => setSelectedUser(conv)}>
+                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.username}`} className="w-12 h-12 rounded-full border border-slate-100 relative" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-semibold text-sm">{conv.username}</h3>
+                        <span className="text-[10px] text-slate-500">2m</span>
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">
+                        {conv.lastMessage ? (conv.lastMessage.messageType === 'text' ? conv.lastMessage.content : 'File') : 'Tap to chat'}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* STATUS TAB */}
